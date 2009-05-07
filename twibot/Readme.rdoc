@@ -1,0 +1,175 @@
+= Twibot
+Official URL: http://github.com/cjohansen/twibot/tree/master
+Christian Johansen (http://www.cjohansen.no)
+Twitter: @cjno
+
+== Description
+
+Twibot (pronounced like "Abbot"), is a Ruby microframework for creating Twitter
+bots, heavily inspired by Sinatra.
+
+== Usage
+
+=== Simple example
+
+  require 'twibot'
+
+  # Receive messages, and tweet them publicly
+  #
+  message do |message, params|
+    post_tweet message
+  end
+
+  # Respond to @replies if they come from the right crowd
+  #
+  reply :from => [:cjno, :irbno] do |message, params|
+    post_tweet "@#{message.sender.screen_name} I agree"
+  end
+
+  # Listen in and log tweets
+  #
+  tweet do |message, params|
+    MyApp.log_tweet(message)
+  end
+
+=== Running the bot
+
+To run the bot, simply do:
+
+  ruby bot.rb
+
+=== Configuration
+
+Twibot looks for a configuration file in ./config/bot.yml. It should contain
+atleast:
+
+  login: twitter_login
+  password: twitter_password
+
+You can also pass configuration as command line arguments:
+
+  ruby bot.rb --login myaccount
+
+...or configure with Ruby:
+
+  configure do |conf|
+    conf.login = "my_account"
+  do
+
+If you don't specify login and/or password in any of these ways, Twibot will
+prompt you for those.
+
+If you want to change how Twibot is configured, you can setup the bot instance
+manually and give it only the configuration options you want:
+
+  # Create bot only with default configuration
+  require 'twibot'
+  bot = Twibot::Bot.new(Twibot::Config.default)
+
+  # Application here...
+
+If you want command line arguments you can do:
+
+  require 'twibot'
+  bot = Twibot::Bot.new(Twibot::Config.default << Twibot::CliConfig.new)
+
+=== "Routes"
+
+Like Sinatra, and other web app frameworks, Twibot supports "routes": patterns
+to match incoming tweets and messages:
+
+  require 'twibot'
+
+  tweet "time :country :city" do |message,params|
+    time = MyTimeService.lookup(params[:country], params[:city])
+    client.message :post, "Time is #{time} in #{params[:city]}, #{params[:country]}"
+  end
+
+You can have several "tweet" blocks (or "message" or "reply"). The first one to
+match an incoming tweet/message will handle it.
+
+As of the upcoming 0.1.5/0.2.0, Twibot also supports regular expressions as routes:
+
+  require 'twibot'
+
+  tweet /^time ([^\s]*) ([^\s]*)/ do |message, params|
+    # params is an array of matches when using regexp routes
+    time = MyTimeService.lookup(params[0], params[1])
+    client.message :post, "Time is #{time} in #{params[:city]}, #{params[:country]}"
+  end
+
+=== Working with the Twitter API
+
+The DSL gives you access to your Twitter client instance through "client" (or "twitter"):
+
+  message do
+    twitter.status :post, "Hello world" # Also: client.status :post, "Hello world"
+  end
+
+== Requirements
+
+Twitter4r. You'll need atleast 0.3.1, which is currently only available from GitHub.
+Versions of Twitter4r prior to 0.3.1 does not allow for the since_id parameter to be
+appended to URLs to the REST API. Twibot needs these to only fetch fresh messages
+and tweets.
+
+== Installation
+
+gem install twibot
+
+== Is it Ruby 1.9?
+
+As of Twibot 0.1.3, yes it is! All tests pass, please give feedback from real world
+usage if you have trouble.
+
+== Polling
+
+Twitter pulled the plug on it's xmpp service last year. This means that Twibot backed
+bots needs to poll the Twitter service to keep up. Twitter has a request limit on 70
+reqs/hour, so you should configure your bot not to make more than that, else it will
+fail. You can ask for your bot account to be put on the whitelist which allows you to
+make 20.000 reqs/hour, and shouldn't be a problem so long as your intentions are good
+(I think).
+
+Twibot polls like this:
+* Poll messages if any message handlers exist
+* Poll tweets if any tweet or reply handlers exist
+* Sleep for +interval+ seconds
+* Go over again
+
+As long as Twibot finds any messages and/or tweets, the interval stays the same
+(min_interval configuration switch). If nothing was found however, the interval to
+sleep is increased by interval_step configuration option. This happens until it
+reaches max_interval, where it will stay until Twibot finds anything.
+
+== Contributors
+
+* Dan Van Derveer (bug fixes) - http://dan.van.derveer.com/
+* Ben Vandgrift (Twitter downtime error handling) - http://neovore.com/
+* Jens Ohlig (warnings)
+* Wilco van Duinkerken (bug fixes) - http://www.sparkboxx.com/
+
+== License
+
+(The MIT License)
+
+Copyright (c) 2009 Christian Johansen
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+'Software'), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
