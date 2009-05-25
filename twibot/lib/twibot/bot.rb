@@ -148,6 +148,10 @@ module Twibot
 				log.error("Connection error happened: ")
 				log.error(e.to_s)
 				0
+			rescue Errno::ECONNREFUSED => e
+				log.error("Connection refused happened: ")
+				log.error(e.to_s)
+				0
 			rescue OpenSSL::SSL::SSLError => e
 				log.error("SSL error: ")
 				log.error(e.to_s)
