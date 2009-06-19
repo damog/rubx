@@ -44,8 +44,14 @@ module Twibot
       end
 
       # Make sure we don't process messages and tweets received prior to bot launch
-      messages = @twitter.messages(:received, { :count => 1 })
-      @processed[:message] = messages.first.id if messages.length > 0
+      begin
+				messages = @twitter.messages(:received, { :count => 1 })
+      rescue JSON::ParserError => e
+				log.error "JSON error"
+				log.error e.to_s
+			end
+
+			@processed[:message] = messages.first.id if messages.length > 0
 
       handle_tweets = @handlers[:tweet].length + @handlers[:reply].length > 0
       tweets = []
@@ -154,6 +160,10 @@ module Twibot
 				0
 			rescue OpenSSL::SSL::SSLError => e
 				log.error("SSL error: ")
+				log.error(e.to_s)
+				0
+			rescue JSON::ParserError => e
+				log.error("JSON Parser error:")
 				log.error(e.to_s)
 				0
       end
